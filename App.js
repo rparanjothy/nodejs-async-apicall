@@ -12,13 +12,29 @@ app.get("/hello/:name?/:age?", (req, res) => {
 });
 
 const getFrom = x => {
-  url = `https://www.homedepot.com/p/svcs/frontEndModel/${x}`;
+  const url = `https://www.homedepot.com/p/svcs/frontEndModel/${x.toString()}`;
   return axios
     .get(url)
-    .then(res => res.data)
+    .then(res => {
+      const { itemId, storeSkus, media } = res.data.primaryItemData;
+      // media.mediaList.filter(e => e.mediaType == "IMAGE" && e.height === 300);
+      return {
+        msg: "OK",
+        itemId,
+        pricing: storeSkus
+          .filter(e => e.storeId === "8119")
+          .map(e => e.pricing)
+          .pop(),
+        // storeSkus,
+        media: media.mediaList
+          .filter(e => e.mediaType == "IMAGE" && e.height === "300")
+          .pop()
+      };
+    })
     .catch(e => {
       return {
-        msg: e.message,
+        msg: "ERR",
+        errInfo: e.message,
         url,
         itemid: x
       };
@@ -30,8 +46,22 @@ app.get("/getData/:itemid", (req, res) => {
   // a list of promises are wrapped in Promise.all, this again returns a promise, so we then() and send the res
   // We also then inside map because axios is async
   const { itemid } = req.params;
+  const { n } = req.query;
+  const x1 = [];
+
+  if (n) {
+    log(n);
+    const _ = parseInt(itemid);
+    for (var i = 0; i < n; i++) {
+      // log(i);
+      x1.push(_ + i);
+    }
+  } else {
+    x1.push(parseInt(itemid));
+  }
+
   Promise.all(
-    [itemid, itemid].map(e =>
+    x1.map(e =>
       getFrom(e)
         .then(r => r)
         .catch(e => e)
@@ -48,9 +78,15 @@ app.get("/asyncawait/:itemid", async (req, res) => {
   //  what you get is a list of promises, which needs to be resolved to get the actual data; we do this using Promise.all
   //   in doing this, we async the function in get route. note async before (req,res)
   const { itemid } = req.params;
-  const ret = [itemid, itemid].map(async e => await getFrom(e));
+  const x1 = [parseInt(itemid)];
+  // x1.unshift(...x1);
+  // x1.unshift(...x1);
+  // x1.unshift(...x1);
+  // x1.unshift(...x1);
+  // x1.unshift(...x1);
+  const ret = x1.map(async e => await getFrom(e));
   const out = await Promise.all(ret);
-  res.send({ msg: out });
+  res.send({ data: out });
 });
 
 app.listen(port, () => log(`App started on port ${port}`));
