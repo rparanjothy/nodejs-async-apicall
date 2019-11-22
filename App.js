@@ -16,25 +16,38 @@ const getFrom = x => {
   return axios
     .get(url)
     .then(res => res.data)
-    .catch(e => log(e));
+    .catch(e => {
+      return {
+        msg: e.message,
+        url,
+        itemid: x
+      };
+    });
 };
 
 app.get("/getData/:itemid", (req, res) => {
-  //   Using the then and catch
+  // Using the then and catch:
   // a list of promises are wrapped in Promise.all, this again returns a promise, so we then() and send the res
   // We also then inside map because axios is async
-  Promise.all([itemid, itemid].map(e => getFrom(e).then(r => r)))
+  const { itemid } = req.params;
+  Promise.all(
+    [itemid, itemid].map(e =>
+      getFrom(e)
+        .then(r => r)
+        .catch(e => e)
+    )
+  )
     .then(e => res.send(e))
     .catch(e => res.send(e));
 });
 
 app.get("/asyncawait/:itemid", async (req, res) => {
-  const { itemid } = req.params;
   //  Using async and await:
   //  getFrom is a regular function, map does things syncly, but axios fetches things asyncly,
   //  so we async and await the function in map so we can get the async return data and pretened it is sync
   //  what you get is a list of promises, which needs to be resolved to get the actual data; we do this using Promise.all
   //   in doing this, we async the function in get route. note async before (req,res)
+  const { itemid } = req.params;
   const ret = [itemid, itemid].map(async e => await getFrom(e));
   const out = await Promise.all(ret);
   res.send({ msg: out });
