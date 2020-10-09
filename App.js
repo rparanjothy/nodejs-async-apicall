@@ -87,9 +87,8 @@ app.get("/test", (req, res) => {
         .catch(console.err)
     )
     .then((x) => x.map((e) => e.split("/").slice(-1)[0].split(".")[0]))
-    // .then(console.log)
     .then((listDetails) =>
-      listDetails.slice(0, 4).map((id) => {
+      listDetails.slice(0, 10).map((id) => {
         axios
           .get(`https://www.homedepot.com/sitemap/d/pip/${id}.xml`)
           .then((d) => d.data)
@@ -99,29 +98,31 @@ app.get("/test", (req, res) => {
               .then((x) => x.urlset.url)
               .then((urlset) =>
                 urlset
-                  .slice(0, 4)
+                  // .slice(0, 4)
                   .map((x) => x.loc)
                   .map((x) => x[0])
                   .map((url) => url.split("/").slice(-2).join(","))
               )
               .then((csv) => csv.join("\n"))
-              // .then((urlList) => urlList.join("\n"))
-              // .then((loc) => console.dir(loc, { depth: 1 }))
               .then((csvdata) =>
-                fs.writeFile(`thd-${id}.csv`, csvdata, (e) => {
-                  console.log("done!");
+                fs.writeFile(`./data/thd-${id}.csv`, csvdata, (e) => {
+                  // fs error
+                  e
+                    ? console.log(`${id} - error! - ${e.toString()}`)
+                    : console.log(`${id} - done!`);
                 })
               )
+              // xmljs error
               .catch(console.err)
           )
+          // axios omsid error
           .catch(console.err);
       })
     )
+    // axios error
     .catch(console.err);
 
-  // const t = "<hi>asdas</hi>";
-  // xml2js.parseStringPromise(t).then(console.log).catch(console.err);
-  res.send("ok");
+  res.send({ msg: "crawler started.." });
 });
 
 app.get("/asyncawait/:itemid", async (req, res) => {
