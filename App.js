@@ -1,9 +1,10 @@
 const express = require("express");
 const axios = require("axios");
 const log = console.log;
-
+const fs = require("fs");
 const app = express();
 const port = process.env.port || 3333;
+var xml2js = require("xml2js");
 
 app.get("/hello/:name?/:age?", (req, res) => {
   o = {};
@@ -11,32 +12,32 @@ app.get("/hello/:name?/:age?", (req, res) => {
   res.send({ params: req.params, hdr: req.headers, hn: req.hostname });
 });
 
-const getFrom = x => {
+const getFrom = (x) => {
   const url = `https://www.homedepot.com/p/svcs/frontEndModel/${x.toString()}`;
   return axios
     .get(url)
-    .then(res => {
+    .then((res) => {
       const { itemId, storeSkus, media } = res.data.primaryItemData;
       // media.mediaList.filter(e => e.mediaType == "IMAGE" && e.height === 300);
       return {
         msg: "OK",
         itemId,
         pricing: storeSkus
-          .filter(e => e.storeId === "8119")
-          .map(e => e.pricing)
+          .filter((e) => e.storeId === "8119")
+          .map((e) => e.pricing)
           .pop(),
         // storeSkus,
         media: media.mediaList
-          .filter(e => e.mediaType == "IMAGE" && e.height === "300")
-          .pop()
+          .filter((e) => e.mediaType == "IMAGE" && e.height === "300")
+          .pop(),
       };
     })
-    .catch(e => {
+    .catch((e) => {
       return {
         msg: "ERR",
         errInfo: e.message,
         url,
-        itemid: x
+        itemid: x,
       };
     });
 };
@@ -61,14 +62,66 @@ app.get("/getData/:itemid", (req, res) => {
   }
 
   Promise.all(
-    x1.map(e =>
+    x1.map((e) =>
       getFrom(e)
-        .then(r => r)
-        .catch(e => e)
+        .then((r) => r)
+        .catch((e) => e)
     )
   )
-    .then(e => res.send(e))
-    .catch(e => res.send(e));
+    .then((e) => res.send(e))
+    .catch((e) => res.send(e));
+});
+
+app.get("/test", (req, res) => {
+  const id = 1;
+  const sitemap_pip = "https://www.homedepot.com/sitemap/d/pip_sitemap.xml";
+  axios
+    .get(sitemap_pip)
+    .then((d) => d.data)
+    .then((t) =>
+      xml2js
+        .parseStringPromise(t)
+        .then((x) => x.sitemapindex.sitemap)
+        .then((sitemaps) => sitemaps.map((x) => x.loc[0]))
+        .then((detailId) => detailId)
+        .catch(console.err)
+    )
+    .then((x) => x.map((e) => e.split("/").slice(-1)[0].split(".")[0]))
+    // .then(console.log)
+    .then((listDetails) =>
+      listDetails.slice(0, 4).map((id) => {
+        axios
+          .get(`https://www.homedepot.com/sitemap/d/pip/${id}.xml`)
+          .then((d) => d.data)
+          .then((t) =>
+            xml2js
+              .parseStringPromise(t)
+              .then((x) => x.urlset.url)
+              .then((urlset) =>
+                urlset
+                  .slice(0, 4)
+                  .map((x) => x.loc)
+                  .map((x) => x[0])
+                  .map((url) => url.split("/").slice(-2).join(","))
+              )
+              .then((csv) => csv.join("\n"))
+              // .then((urlList) => urlList.join("\n"))
+              // .then((loc) => console.dir(loc, { depth: 1 }))
+              .then((csvdata) =>
+                fs.writeFile(`thd-${id}.csv`, csvdata, (e) => {
+                  console.log("done!");
+                })
+              )
+              .catch(console.err)
+          )
+          .catch(console.err);
+      })
+    )
+    .catch(console.err);
+
+  // const t = "<hi>asdas</hi>";
+  // xml2js.parseStringPromise(t).then(console.log).catch(console.err);
+  res.send("ok");
 });
 
 app.get("/asyncawait/:itemid", async (req, res) => {
@@ -84,7 +137,7 @@ app.get("/asyncawait/:itemid", async (req, res) => {
   // x1.unshift(...x1);
   // x1.unshift(...x1);
   // x1.unshift(...x1);
-  const ret = x1.map(async e => await getFrom(e));
+  const ret = x1.map(async (e) => await getFrom(e));
   const out = await Promise.all(ret);
   res.send({ data: out });
 });
