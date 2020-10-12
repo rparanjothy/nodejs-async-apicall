@@ -88,35 +88,42 @@ app.get("/test", (req, res) => {
     )
     .then((x) => x.map((e) => e.split("/").slice(-1)[0].split(".")[0]))
     .then((listDetails) =>
-      listDetails.slice(0, 10).map((id) => {
-        axios
-          .get(`https://www.homedepot.com/sitemap/d/pip/${id}.xml`)
-          .then((d) => d.data)
-          .then((t) =>
-            xml2js
-              .parseStringPromise(t)
-              .then((x) => x.urlset.url)
-              .then((urlset) =>
-                urlset
-                  // .slice(0, 4)
-                  .map((x) => x.loc)
-                  .map((x) => x[0])
-                  .map((url) => url.split("/").slice(-2).join(","))
-              )
-              .then((csv) => csv.join("\n"))
-              .then((csvdata) =>
-                fs.writeFile(`./data/thd-${id}.csv`, csvdata, (e) => {
-                  // fs error
-                  e
-                    ? console.log(`${id} - error! - ${e.toString()}`)
-                    : console.log(`${id} - done!`);
-                })
-              )
-              // xmljs error
-              .catch(console.err)
-          )
-          // axios omsid error
-          .catch(console.err);
+      listDetails.slice(100, 105).map((id, idx) => {
+        setTimeout(() => {
+          console.log(
+            `starting... ${id} after ${
+              idx * 500
+            } - ${new Date().getMinutes()}:${new Date().getSeconds()}`
+          );
+          axios
+            .get(`https://www.homedepot.com/sitemap/d/pip/${id}.xml`)
+            .then((d) => d.data)
+            .then((t) =>
+              xml2js
+                .parseStringPromise(t)
+                .then((x) => x.urlset.url)
+                .then((urlset) =>
+                  urlset
+                    // .slice(0, 4)
+                    .map((x) => x.loc)
+                    .map((x) => x[0])
+                    .map((url) => url.split("/").slice(-2).join(","))
+                )
+                .then((csv) => csv.join("\n"))
+                .then((csvdata) =>
+                  fs.writeFile(`./data/thd-${id}.csv`, csvdata, (e) => {
+                    // fs error
+                    e
+                      ? console.log(`${id} - error! - ${e.toString()}`)
+                      : console.log(`${id} - done!`);
+                  })
+                )
+                // xmljs error
+                .catch(console.err)
+            )
+            // axios omsid error
+            .catch(console.err);
+        }, idx * 500);
       })
     )
     // axios error
