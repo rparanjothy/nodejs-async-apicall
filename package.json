@@ -10,7 +10,7 @@
   "author": "Ram P",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "express": "^4.17.1",
     "rxjs": "^6.5.3",
     "xml2js": "^0.4.23"
